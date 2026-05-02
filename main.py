@@ -69,6 +69,13 @@ def detect_intent(msg: str):
 
 # ---------- Routes ----------
 
+@app.get("/")
+async def root():
+    return {
+        "message": "Vera AI Growth Consultant API is running",
+        "health": "/v1/healthz"
+    }
+
 @app.get("/v1/healthz")
 async def health_check():
     return {"status": "ok"}
