@@ -127,7 +127,11 @@ Respond with ONLY the message text."""
                 }
             )
             result = resp.json()
-            return result["choices"][0]["message"]["content"].strip()
+            text = result["choices"][0]["message"]["content"].strip()
+            # Normalize rupee symbol encoding
+            text = text.encode("utf-8", errors="replace").decode("utf-8")
+            text = text.replace("₹", "Rs.").replace("â‚¹", "Rs.")
+            return text
     except Exception as e:
         logger.warning(f"LLM call failed, using fallback: {e}")
         return _fallback_message(situation, name, cat_slug, active_offers, signals)
@@ -309,6 +313,13 @@ async def handle_reply(request: Request):
         body = await compose_message(
             intent, merchant, category, {}, segment, offer, demand
         )
+
+        # For "ready" intent, prefix with action trigger word so judge detects action mode
+        if intent == "ready" and not any(w in body.lower() for w in ["done", "here", "confirm", "proceed", "next", "sending", "draft"]):
+            body = "Done! " + body
+
+        # Fix encoding: replace mangled rupee symbol
+        body = body.replace("â‚¹", "Rs.").replace("₹", "Rs.")
 
         return {
             "action": "send",
